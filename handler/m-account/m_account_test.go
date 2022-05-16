@@ -300,6 +300,90 @@ func TestUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestDelete(t *testing.T) {
+
+	mockMAccountDBDeleteErr := &mocks.Service{}
+	reqErr := &DeleteRequest{
+		Code: "nike",
+	}
+	mockMAccountDBDeleteErr.On("Delete", context.Background(), reqErr.Code).Return(errors.New(""))
+
+	mockMAccountDBDeleteSuccess := &mocks.Service{}
+	reqOk := &DeleteRequest{
+		Code: "adidas",
+	}
+	mockMAccountDBDeleteSuccess.On("Delete", context.Background(), reqOk.Code).Return(nil)
+
+	type fields struct {
+		mAccountRepo mAccountDB.Service
+	}
+	type params struct {
+		ctx context.Context
+		req *DeleteRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		params params
+		want   DeleteResponse
+	}{
+		{
+			name: "test req is nil",
+			params: params{
+				ctx: context.Background(),
+				req: nil,
+			},
+			want: DeleteResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.NilRequest.Code(),
+					Message: err.NilRequest.Error(),
+				},
+			},
+		},
+		{
+			name: "test delete merchant account fail",
+			params: params{
+				ctx: context.Background(),
+				req: reqErr,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBDeleteErr,
+			},
+			want: DeleteResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.DeleteMAccountFailed.Code(),
+					Message: err.DeleteMAccountFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test delete merchant account success",
+			params: params{
+				ctx: context.Background(),
+				req: reqOk,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBDeleteSuccess,
+			},
+			want: DeleteResponse{
+				Status: status.Success,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := New(tt.fields.mAccountRepo)
+			got := h.Delete(tt.params.ctx, tt.params.req)
+			assert.Equal(t, got, tt.want)
+		})
+	}
+}
+
 func TestHashPassword(t *testing.T) {
 	password := "chungtm"
 	hash, err := HashPassword(password)
