@@ -141,5 +141,28 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 }
 
 func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse {
-	return DeleteResponse{}
+	if req == nil {
+		return DeleteResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.NilRequest.Code(),
+				Message: err.NilRequest.Error(),
+			},
+		}
+	}
+
+	if er := h.mMemberRepo.Delete(ctx, req.Email); er != nil {
+		return DeleteResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.DeleteMMemberFailed.Code(),
+				Message: err.DeleteMMemberFailed.Error(),
+			},
+		}
+	}
+	return DeleteResponse{
+		Status: status.Success,
+	}
 }

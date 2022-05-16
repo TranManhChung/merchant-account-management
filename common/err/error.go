@@ -19,6 +19,7 @@ var (
 	EmptyEmail           = error{code: -15, mess: "email is empty"}
 	GetMMemberFailed     = error{code: -16, mess: "internal error"}
 	UpdateMMemberFailed  = error{code: -17, mess: "internal error"}
+	DeleteMMemberFailed  = error{code: -18, mess: "internal error"}
 )
 
 type error struct {
