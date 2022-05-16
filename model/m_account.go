@@ -1,6 +1,8 @@
 package model
 
-import "github.com/golang/protobuf/ptypes/timestamp"
+import (
+	"time"
+)
 
 type MerchantAccount struct {
 	ID        int64  `bun:",pk,autoincrement"`
@@ -9,8 +11,8 @@ type MerchantAccount struct {
 	UserName  string
 	Password  string
 	IsActive  bool
-	CreatedAt timestamp.Timestamp
-	UpdatedAt timestamp.Timestamp
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type MerchantAccountEntity struct {
@@ -19,7 +21,7 @@ type MerchantAccountEntity struct {
 	IsActive bool   `json:"is_active"`
 }
 
-func (m MerchantAccount) toEntity() MerchantAccountEntity {
+func (m MerchantAccount) ToEntity() MerchantAccountEntity {
 	return MerchantAccountEntity{
 		Code:     m.Code,
 		Name:     m.Name,
