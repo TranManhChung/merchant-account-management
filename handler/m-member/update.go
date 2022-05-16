@@ -8,11 +8,12 @@ import (
 )
 
 type UpdateRequest struct {
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	UserName string `json:"user_name"`
-	Password string `json:"password"`
-	IsActive bool   `json:"is_active"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	Address      string `json:"address"`
+	DoB          string `json:"do_b"`
+	Phone        string `json:"phone"`
+	Gender       string `json:"gender"`
 }
 
 type UpdateResponse struct {

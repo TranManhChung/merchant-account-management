@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreate(t *testing.T) {
+func TestMACreate(t *testing.T) {
 	bodyReq, err:= json.Marshal(m_account.CreateRequest{
 		Code: "1",
 		Name: "nike",
@@ -33,7 +33,7 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, `{"status":"success"}`+"\n", sb)
 }
 
-func TestRead(t *testing.T) {
+func TestMARead(t *testing.T) {
 	resp, err := http.Get("http://localhost:8080/v1/merchant/account/read?id=1")
 	assert.Nil(t, err)
 
@@ -44,7 +44,7 @@ func TestRead(t *testing.T) {
 	assert.Equal(t, `{"status":"success"}`+"\n", sb)
 }
 
-func TestUpdate(t *testing.T) {
+func TestMAUpdate(t *testing.T) {
 	bodyReq, err:= json.Marshal(m_account.UpdateRequest{
 		Code: "1",
 		Name: "nike",
@@ -65,7 +65,7 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, `{"status":"success"}`+"\n", sb)
 }
 
-func TestDelete(t *testing.T) {
+func TestMADelete(t *testing.T) {
 	bodyReq, err:= json.Marshal(m_account.DeleteRequest{
 		Code: "1",
 	})
