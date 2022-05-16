@@ -5,10 +5,6 @@ import (
 	"main.go/model"
 )
 
-const (
-	maxCodLen = 10
-)
-
 type CreateRequest struct {
 	Code     string `json:"code"`
 	Name     string `json:"name"`
@@ -30,9 +26,7 @@ type ReadResponse struct {
 type UpdateRequest struct {
 	Code     string `json:"code"`
 	Name     string `json:"name"`
-	UserName string `json:"user_name"`
 	Password string `json:"password"`
-	IsActive bool   `json:"is_active"`
 }
 
 type UpdateResponse struct {

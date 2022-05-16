@@ -37,16 +37,6 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 			},
 		}
 	}
-	if len(req.Code) > maxCodLen {
-		return CreateResponse{
-			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.TooLongCode.Code(),
-				Message: err.TooLongCode.Error(),
-			},
-		}
-	}
 	pwd, er := HashPassword(req.Password)
 	if er != nil {
 		return CreateResponse{
@@ -95,8 +85,8 @@ func (h Handler) Read(ctx context.Context, code string) ReadResponse {
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.GetAccountFailed.Code(),
-				Message: err.GetAccountFailed.Error(),
+				Code:    err.GetMAccountFailed.Code(),
+				Message: err.GetMAccountFailed.Error(),
 			},
 		}
 	}
@@ -107,7 +97,49 @@ func (h Handler) Read(ctx context.Context, code string) ReadResponse {
 }
 
 func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse {
-	return UpdateResponse{}
+	if req == nil {
+		return UpdateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.NilRequest.Code(),
+				Message: err.NilRequest.Error(),
+			},
+		}
+	}
+	var pwd string
+	var er error
+	if req.Password != "" {
+		pwd, er = HashPassword(req.Password)
+		if er != nil {
+			return UpdateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.HashPasswordFailed.Code(),
+					Message: err.HashPasswordFailed.Error(),
+				},
+			}
+		}
+	}
+
+	if er = h.mAccountRepo.Update(ctx, model.MerchantAccount{
+		Code:     req.Code,
+		Name:     req.Name,
+		Password: pwd,
+	}); er != nil {
+		return UpdateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.UpdateMAccountFailed.Code(),
+				Message: err.UpdateMAccountFailed.Error(),
+			},
+		}
+	}
+	return UpdateResponse{
+		Status: status.Success,
+	}
 }
 
 func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse {
