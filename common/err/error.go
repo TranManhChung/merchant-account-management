@@ -11,6 +11,7 @@ var (
 	NilMerchantCode      = error{code: -7, mess: "merchant code is empty"}
 	GetMAccountFailed    = error{code: -8, mess: "internal error"}
 	UpdateMAccountFailed = error{code: -9, mess: "internal error"}
+	DeleteMAccountFailed = error{code: -10, mess: "internal error"}
 )
 
 type error struct {
