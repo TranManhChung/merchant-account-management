@@ -37,6 +37,25 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 			},
 		}
 	}
+	if isExisted, er := h.mAccountRepo.IsExisted(ctx, req.Code); er != nil {
+		return CreateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.CheckExistenceFailed.Code(),
+				Message: err.CheckExistenceFailed.Error(),
+			},
+		}
+	} else if isExisted {
+		return CreateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.MerchantCodeExisted.Code(),
+				Message: err.MerchantCodeExisted.Error(),
+			},
+		}
+	}
 	pwd, er := HashPassword(req.Password)
 	if er != nil {
 		return CreateResponse{
