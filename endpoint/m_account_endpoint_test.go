@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	m_account "main.go/handler/m-account"
 	"net/http"
 	"testing"
+
+	mAccount "main.go/handler/m-account"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMACreate(t *testing.T) {
-	bodyReq, err:= json.Marshal(m_account.CreateRequest{
-		Code: "1",
-		Name: "nike",
+	bodyReq, err := json.Marshal(mAccount.CreateRequest{
+		Code:     "1",
+		Name:     "nike",
 		UserName: "user_name",
 		Password: "password",
 	})
@@ -45,10 +46,9 @@ func TestMARead(t *testing.T) {
 }
 
 func TestMAUpdate(t *testing.T) {
-	bodyReq, err:= json.Marshal(m_account.UpdateRequest{
-		Code: "1",
-		Name: "nike",
-		UserName: "user_name",
+	bodyReq, err := json.Marshal(mAccount.UpdateRequest{
+		Code:     "1",
+		Name:     "nike",
 		Password: "password",
 	})
 	assert.Nil(t, err)
@@ -66,7 +66,7 @@ func TestMAUpdate(t *testing.T) {
 }
 
 func TestMADelete(t *testing.T) {
-	bodyReq, err:= json.Marshal(m_account.DeleteRequest{
+	bodyReq, err := json.Marshal(mAccount.DeleteRequest{
 		Code: "1",
 	})
 	assert.Nil(t, err)
