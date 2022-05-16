@@ -38,12 +38,13 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 		}
 	}
 	if isExisted, er := h.mAccountRepo.IsExisted(ctx, req.Code); er != nil {
+		customErr := er.(err.InternalError)
 		return CreateResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.CheckExistenceFailed.Code(),
-				Message: err.CheckExistenceFailed.Error(),
+				Code:    customErr.Code(),
+				Message: customErr.Error(),
 			},
 		}
 	} else if isExisted {
@@ -73,12 +74,13 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 		UserName: req.UserName,
 		Password: pwd,
 	}); er != nil {
+		customErr := er.(err.InternalError)
 		return CreateResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.AddMAccountFailed.Code(),
-				Message: err.AddMAccountFailed.Error(),
+				Code:    customErr.Code(),
+				Message: customErr.Error(),
 			},
 		}
 	}
@@ -93,19 +95,20 @@ func (h Handler) Read(ctx context.Context, code string) ReadResponse {
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.NilMerchantCode.Code(),
-				Message: err.NilMerchantCode.Error(),
+				Code:    err.EmptyMerchantCode.Code(),
+				Message: err.EmptyMerchantCode.Error(),
 			},
 		}
 	}
 	entity, er := h.mAccountRepo.Get(ctx, code)
 	if er != nil {
+		customErr := er.(err.InternalError)
 		return ReadResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.GetMAccountFailed.Code(),
-				Message: err.GetMAccountFailed.Error(),
+				Code:    customErr.Code(),
+				Message: customErr.Error(),
 			},
 		}
 	}
@@ -129,7 +132,7 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	var pwd string
 	var er error
 	pwd, er = HashPassword(req.Password)
-	if er != nil && er.Error() != err.NilPassword.Error() {
+	if er != nil && er.Error() != err.EmptyPassword.Error() {
 		return UpdateResponse{
 			Status: status.Failed,
 			Error: &err.Error{
@@ -145,12 +148,13 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 		Name:     req.Name,
 		Password: pwd,
 	}); er != nil {
+		customErr := er.(err.InternalError)
 		return UpdateResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.UpdateMAccountFailed.Code(),
-				Message: err.UpdateMAccountFailed.Error(),
+				Code:    customErr.Code(),
+				Message: customErr.Error(),
 			},
 		}
 	}
@@ -172,12 +176,13 @@ func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse 
 	}
 
 	if er := h.mAccountRepo.Delete(ctx, req.Code); er != nil {
+		customErr := er.(err.InternalError)
 		return DeleteResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
-				Code:    err.DeleteMAccountFailed.Code(),
-				Message: err.DeleteMAccountFailed.Error(),
+				Code:    customErr.Code(),
+				Message: customErr.Error(),
 			},
 		}
 	}
@@ -188,7 +193,7 @@ func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse 
 
 func HashPassword(password string) (string, error) {
 	if password == "" {
-		return "", err.NilPassword
+		return "", err.EmptyPassword
 	}
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err

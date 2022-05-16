@@ -42,7 +42,7 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 			Error: &err.Error{
 				Domain:  status.Domain,
 				Code:    err.CheckExistenceFailed.Code(),
-				Message: err.CheckExistenceFailed.Error(),
+				Message: er.Error(),
 			},
 		}
 	} else if isExisted {
@@ -56,20 +56,20 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 		}
 	}
 	if er := h.mMemberRepo.Add(ctx, model.MerchantMember{
-		Email:        req.Email,
-		MerchantCode: req.MerchantCode,
-		Name:         req.Name,
-		Address:      req.Address,
-		DoB:          req.DoB,
-		Phone:        req.Phone,
-		Gender:       req.Gender,
+		Email:      req.Email,
+		MerchantID: req.MerchantID,
+		Name:       req.Name,
+		Address:    req.Address,
+		DoB:        req.DoB,
+		Phone:      req.Phone,
+		Gender:     req.Gender,
 	}); er != nil {
 		return CreateResponse{
 			Status: status.Failed,
 			Error: &err.Error{
 				Domain:  status.Domain,
 				Code:    err.AddMMemberFailed.Code(),
-				Message: err.AddMMemberFailed.Error(),
+				Message: er.Error(),
 			},
 		}
 	}
@@ -96,7 +96,7 @@ func (h Handler) Read(ctx context.Context, email string) ReadResponse {
 			Error: &err.Error{
 				Domain:  status.Domain,
 				Code:    err.GetMMemberFailed.Code(),
-				Message: err.GetMMemberFailed.Error(),
+				Message: er.Error(),
 			},
 		}
 	}
@@ -131,7 +131,7 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 			Error: &err.Error{
 				Domain:  status.Domain,
 				Code:    err.UpdateMMemberFailed.Code(),
-				Message: err.UpdateMMemberFailed.Error(),
+				Message: er.Error(),
 			},
 		}
 	}
