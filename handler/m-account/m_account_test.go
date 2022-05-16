@@ -16,11 +16,26 @@ import (
 func TestCreate(t *testing.T) {
 
 	mockMAccountDB := &mocks.Service{}
+	mockMAccountDB.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
+
+	reqErr := CreateRequest{
+		Code: "nike",
+	}
+	mockMAccountDBIsExistedErr := &mocks.Service{}
+	mockMAccountDBIsExistedErr.On("IsExisted", context.Background(), reqErr.Code).Return(false, errors.New(""))
+
+	reqErr = CreateRequest{
+		Code: "nike",
+	}
+	mockMAccountDBAccountExisted := &mocks.Service{}
+	mockMAccountDBAccountExisted.On("IsExisted", context.Background(), reqErr.Code).Return(true, nil)
 
 	mockMAccountDBAddErr := &mocks.Service{}
+	mockMAccountDBAddErr.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
 	mockMAccountDBAddErr.On("Add", context.Background(), mock.Anything).Return(errors.New(""))
 
 	mockMAccountDBAddSuccess := &mocks.Service{}
+	mockMAccountDBAddSuccess.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
 	mockMAccountDBAddSuccess.On("Add", context.Background(), mock.Anything).Return(nil)
 
 	type fields struct {
@@ -51,6 +66,42 @@ func TestCreate(t *testing.T) {
 					Domain:  status.Domain,
 					Code:    err.NilRequest.Code(),
 					Message: err.NilRequest.Error(),
+				},
+			},
+		},
+		{
+			name: "test check existence fail",
+			fields: fields{
+				mAccountRepo: mockMAccountDBIsExistedErr,
+			},
+			params: params{
+				ctx: context.Background(),
+				req: &reqErr,
+			},
+			want: CreateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.CheckExistenceFailed.Code(),
+					Message: err.CheckExistenceFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test account existed",
+			fields: fields{
+				mAccountRepo: mockMAccountDBAccountExisted,
+			},
+			params: params{
+				ctx: context.Background(),
+				req: &reqErr,
+			},
+			want: CreateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.MerchantCodeExisted.Code(),
+					Message: err.MerchantCodeExisted.Error(),
 				},
 			},
 		},
