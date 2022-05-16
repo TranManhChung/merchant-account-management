@@ -11,4 +11,5 @@ type Service interface {
 	Update(ctx context.Context, account model.MerchantMember) error
 	Get(ctx context.Context, email string) (model.MerchantMemberEntity, error)
 	Delete(ctx context.Context, email string) error
+	IsExisted(ctx context.Context, email string) (bool, error)
 }

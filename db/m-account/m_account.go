@@ -11,4 +11,5 @@ type Service interface {
 	Update(ctx context.Context, account model.MerchantAccount) error
 	Get(ctx context.Context, code string) (*model.MerchantAccountEntity, error)
 	Delete(ctx context.Context, code string) error
+	IsExisted(ctx context.Context, code string) (bool, error)
 }

@@ -12,6 +12,10 @@ var (
 	GetMAccountFailed    = error{code: -8, mess: "internal error"}
 	UpdateMAccountFailed = error{code: -9, mess: "internal error"}
 	DeleteMAccountFailed = error{code: -10, mess: "internal error"}
+
+	AddMMemberFailed     = error{code: -11, mess: "internal error"}
+	EmailExisted         = error{code: -12, mess: "email existed"}
+	CheckExistenceFailed = error{code: -13, mess: "check existence failed"}
 )
 
 type error struct {
