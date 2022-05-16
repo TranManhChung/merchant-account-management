@@ -9,7 +9,7 @@ import (
 type Service interface {
 	Add(ctx context.Context, account model.MerchantMember) error
 	Update(ctx context.Context, account model.MerchantMember) error
-	Get(ctx context.Context, email string) (model.MerchantMemberEntity, error)
+	Get(ctx context.Context, email string) (*model.MerchantMemberEntity, error)
 	Delete(ctx context.Context, email string) error
 	IsExisted(ctx context.Context, email string) (bool, error)
 }

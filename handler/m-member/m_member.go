@@ -79,7 +79,31 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 }
 
 func (h Handler) Read(ctx context.Context, email string) ReadResponse {
-	return ReadResponse{}
+	if email == "" {
+		return ReadResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.EmptyEmail.Code(),
+				Message: err.EmptyEmail.Error(),
+			},
+		}
+	}
+	entity, er := h.mMemberRepo.Get(ctx, email)
+	if er != nil {
+		return ReadResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.GetMMemberFailed.Code(),
+				Message: err.GetMMemberFailed.Error(),
+			},
+		}
+	}
+	return ReadResponse{
+		Status: status.Success,
+		Data:   entity,
+	}
 }
 
 func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse {
