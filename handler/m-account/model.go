@@ -2,6 +2,10 @@ package m_account
 
 import "main.go/common/err"
 
+const (
+	maxCodLen = 10
+)
+
 type CreateRequest struct {
 	Code     string `json:"code"`
 	Name     string `json:"name"`

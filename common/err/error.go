@@ -1,7 +1,13 @@
 package err
 
 var (
-	NilRouter = error{data: "router is nil", code: -1}
+	NilRouter = error{code: -1, mess: "router is nil"}
+
+	NilRequest         = error{code: -2, mess: "request is nil"}
+	TooLongCode        = error{code: -3, mess: "code is too long"}
+	HashPasswordFailed = error{code: -4, mess: "internal error"}
+	AddMAccountFailed  = error{code: -5, mess: "internal error"}
+	NilPassword        = error{code: -6, mess: "password is empty"}
 )
 
 type error struct {
@@ -23,7 +29,7 @@ func (e error) Error() string {
 }
 
 type Error struct {
-	Domain string `json:"domain"`
-	Code int `json:"code"`
+	Domain  string `json:"domain"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }

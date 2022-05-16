@@ -10,7 +10,9 @@ import (
 )
 
 func main() {
-	app, err := infra.New(endpoint.Register(mAccount.Handler{}, mMember.Handler{}))
+	mAccountHandler:= mAccount.New()
+
+	app, err := infra.New(endpoint.Register(mAccountHandler, mMember.Handler{}))
 	if err != nil {
 		log.Fatalln(err)
 	}
