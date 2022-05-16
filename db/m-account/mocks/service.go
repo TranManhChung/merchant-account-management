@@ -44,14 +44,16 @@ func (_m *Service) Delete(ctx context.Context, code string) error {
 }
 
 // Get provides a mock function with given fields: ctx, code
-func (_m *Service) Get(ctx context.Context, code string) (model.MerchantAccountEntity, error) {
+func (_m *Service) Get(ctx context.Context, code string) (*model.MerchantAccountEntity, error) {
 	ret := _m.Called(ctx, code)
 
-	var r0 model.MerchantAccountEntity
-	if rf, ok := ret.Get(0).(func(context.Context, string) model.MerchantAccountEntity); ok {
+	var r0 *model.MerchantAccountEntity
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.MerchantAccountEntity); ok {
 		r0 = rf(ctx, code)
 	} else {
-		r0 = ret.Get(0).(model.MerchantAccountEntity)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.MerchantAccountEntity)
+		}
 	}
 
 	var r1 error

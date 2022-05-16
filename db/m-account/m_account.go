@@ -9,6 +9,6 @@ import (
 type Service interface {
 	Add(ctx context.Context, account model.MerchantAccount) error
 	Update(ctx context.Context, account model.MerchantAccount) error
-	Get(ctx context.Context, code string) (model.MerchantAccountEntity, error)
+	Get(ctx context.Context, code string) (*model.MerchantAccountEntity, error)
 	Delete(ctx context.Context, code string) error
 }

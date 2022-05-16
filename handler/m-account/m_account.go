@@ -102,7 +102,7 @@ func (h Handler) Read(ctx context.Context, code string) ReadResponse {
 	}
 	return ReadResponse{
 		Status: status.Success,
-		Data:   &entity,
+		Data:   entity,
 	}
 }
 
