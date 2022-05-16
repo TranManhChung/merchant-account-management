@@ -55,24 +55,6 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		{
-			name: "test code is too long",
-			fields: fields{
-				mAccountRepo: mockMAccountDB,
-			},
-			params: params{
-				ctx: context.Background(),
-				req: &CreateRequest{Code: "1234567890123"},
-			},
-			want: CreateResponse{
-				Status: status.Failed,
-				Error: &err.Error{
-					Domain:  status.Domain,
-					Code:    err.TooLongCode.Code(),
-					Message: err.TooLongCode.Error(),
-				},
-			},
-		},
-		{
 			name: "test password is empty",
 			fields: fields{
 				mAccountRepo: mockMAccountDB,
@@ -197,8 +179,8 @@ func TestRead(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.GetAccountFailed.Code(),
-					Message: err.GetAccountFailed.Error(),
+					Code:    err.GetMAccountFailed.Code(),
+					Message: err.GetMAccountFailed.Error(),
 				},
 			},
 		},
@@ -226,6 +208,98 @@ func TestRead(t *testing.T) {
 	}
 }
 
+func TestUpdate(t *testing.T) {
+
+	mockMAccountDBUpdateErr := &mocks.Service{}
+	reqErr := &UpdateRequest{
+		Code: "nike",
+		Name: "nike",
+	}
+	mAccountErr := model.MerchantAccount{
+		Code: reqErr.Code,
+		Name: reqErr.Name,
+	}
+	mockMAccountDBUpdateErr.On("Update", context.Background(), mAccountErr).Return(errors.New(""))
+
+	mockMAccountDBUpdateSuccess := &mocks.Service{}
+	reqOk := &UpdateRequest{
+		Code: "adidas",
+		Name: "adidas",
+	}
+	mAccountOk := model.MerchantAccount{
+		Code: reqOk.Code,
+		Name: reqOk.Name,
+	}
+	mockMAccountDBUpdateSuccess.On("Update", context.Background(), mAccountOk).Return(nil)
+
+	type fields struct {
+		mAccountRepo mAccountDB.Service
+	}
+	type params struct {
+		ctx context.Context
+		req *UpdateRequest
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		params params
+		want   UpdateResponse
+	}{
+		{
+			name: "test req is nil",
+			params: params{
+				ctx: context.Background(),
+				req: nil,
+			},
+			want: UpdateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.NilRequest.Code(),
+					Message: err.NilRequest.Error(),
+				},
+			},
+		},
+		{
+			name: "test update merchant account fail in case password is nil",
+			params: params{
+				ctx: context.Background(),
+				req: reqErr,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBUpdateErr,
+			},
+			want: UpdateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.UpdateMAccountFailed.Code(),
+					Message: err.UpdateMAccountFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test update merchant account success",
+			params: params{
+				ctx: context.Background(),
+				req: reqOk,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBUpdateSuccess,
+			},
+			want: UpdateResponse{
+				Status: status.Success,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := New(tt.fields.mAccountRepo)
+			got := h.Update(tt.params.ctx, tt.params.req)
+			assert.Equal(t, got, tt.want)
+		})
+	}
+}
 func TestHashPassword(t *testing.T) {
 	password := "chungtm"
 	hash, err := HashPassword(password)

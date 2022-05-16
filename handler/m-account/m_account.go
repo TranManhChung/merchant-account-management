@@ -109,17 +109,15 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	}
 	var pwd string
 	var er error
-	if req.Password != "" {
-		pwd, er = HashPassword(req.Password)
-		if er != nil {
-			return UpdateResponse{
-				Status: status.Failed,
-				Error: &err.Error{
-					Domain:  status.Domain,
-					Code:    err.HashPasswordFailed.Code(),
-					Message: err.HashPasswordFailed.Error(),
-				},
-			}
+	pwd, er = HashPassword(req.Password)
+	if er != nil && er.Error() != err.NilPassword.Error() {
+		return UpdateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.HashPasswordFailed.Code(),
+				Message: err.HashPasswordFailed.Error(),
+			},
 		}
 	}
 
