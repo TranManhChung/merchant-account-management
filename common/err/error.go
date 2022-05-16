@@ -21,3 +21,9 @@ func (e error) Code() int {
 func (e error) Error() string {
 	return e.mess
 }
+
+type Error struct {
+	Domain string `json:"domain"`
+	Code int `json:"code"`
+	Message string `json:"message"`
+}
