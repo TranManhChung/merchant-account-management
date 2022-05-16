@@ -18,6 +18,7 @@ var (
 	MerchantCodeExisted  = error{code: -14, mess: "merchant code existed"}
 	EmptyEmail           = error{code: -15, mess: "email is empty"}
 	GetMMemberFailed     = error{code: -16, mess: "internal error"}
+	UpdateMMemberFailed  = error{code: -17, mess: "internal error"}
 )
 
 type error struct {

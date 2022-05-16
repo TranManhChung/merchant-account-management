@@ -107,7 +107,37 @@ func (h Handler) Read(ctx context.Context, email string) ReadResponse {
 }
 
 func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse {
-	return UpdateResponse{}
+	if req == nil {
+		return UpdateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.NilRequest.Code(),
+				Message: err.NilRequest.Error(),
+			},
+		}
+	}
+
+	if er := h.mMemberRepo.Update(ctx, model.MerchantMember{
+		Email:   req.Email,
+		Name:    req.Name,
+		Address: req.Address,
+		DoB:     req.DoB,
+		Phone:   req.Phone,
+		Gender:  req.Gender,
+	}); er != nil {
+		return UpdateResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.UpdateMMemberFailed.Code(),
+				Message: err.UpdateMMemberFailed.Error(),
+			},
+		}
+	}
+	return UpdateResponse{
+		Status: status.Success,
+	}
 }
 
 func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse {
