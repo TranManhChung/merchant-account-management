@@ -8,6 +8,8 @@ var (
 	HashPasswordFailed = error{code: -4, mess: "internal error"}
 	AddMAccountFailed  = error{code: -5, mess: "internal error"}
 	NilPassword        = error{code: -6, mess: "password is empty"}
+	NilMerchantCode    = error{code: -7, mess: "merchant code is empty"}
+	GetAccountFailed   = error{code: -8, mess: "internal error"}
 )
 
 type error struct {

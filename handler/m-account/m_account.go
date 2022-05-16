@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	Create(ctx context.Context, req *CreateRequest) CreateResponse
-	Read(ctx context.Context, id string) ReadResponse
+	Read(ctx context.Context, code string) ReadResponse
 	Update(ctx context.Context, req *UpdateRequest) UpdateResponse
 	Delete(ctx context.Context, req *DeleteRequest) DeleteResponse
 }
@@ -78,8 +78,32 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 	}
 }
 
-func (h Handler) Read(ctx context.Context, id string) ReadResponse {
-	return ReadResponse{}
+func (h Handler) Read(ctx context.Context, code string) ReadResponse {
+	if code == "" {
+		return ReadResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.NilMerchantCode.Code(),
+				Message: err.NilMerchantCode.Error(),
+			},
+		}
+	}
+	entity, er := h.mAccountRepo.Get(ctx, code)
+	if er != nil {
+		return ReadResponse{
+			Status: status.Failed,
+			Error: &err.Error{
+				Domain:  status.Domain,
+				Code:    err.GetAccountFailed.Code(),
+				Message: err.GetAccountFailed.Error(),
+			},
+		}
+	}
+	return ReadResponse{
+		Status: status.Success,
+		Data:   &entity,
+	}
 }
 
 func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse {

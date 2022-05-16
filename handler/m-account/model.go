@@ -1,6 +1,9 @@
 package m_account
 
-import "main.go/common/err"
+import (
+	"main.go/common/err"
+	"main.go/model"
+)
 
 const (
 	maxCodLen = 10
@@ -14,13 +17,14 @@ type CreateRequest struct {
 }
 
 type CreateResponse struct {
-	Status string `json:"status"`
+	Status string     `json:"status"`
 	Error  *err.Error `json:"error,omitempty"`
 }
 
 type ReadResponse struct {
-	Status string `json:"status"`
-	Error  *err.Error `json:"error,omitempty"`
+	Status string                       `json:"status"`
+	Error  *err.Error                   `json:"error,omitempty"`
+	Data   *model.MerchantAccountEntity `json:"data"`
 }
 
 type UpdateRequest struct {
@@ -32,15 +36,15 @@ type UpdateRequest struct {
 }
 
 type UpdateResponse struct {
-	Status string `json:"status"`
+	Status string     `json:"status"`
 	Error  *err.Error `json:"error,omitempty"`
 }
 
 type DeleteRequest struct {
-	Code     string `json:"code"`
+	Code string `json:"code"`
 }
 
 type DeleteResponse struct {
-	Status string `json:"status"`
+	Status string     `json:"status"`
 	Error  *err.Error `json:"error,omitempty"`
 }

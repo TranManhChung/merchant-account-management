@@ -41,8 +41,8 @@ func CreateMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter
 
 func ReadMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		resp := mAccountHandler.Read(context.Background(), id)
+		code := r.URL.Query().Get("code")
+		resp := mAccountHandler.Read(context.Background(), code)
 		json.NewEncoder(w).Encode(resp)
 	}
 }
