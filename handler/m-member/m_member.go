@@ -2,6 +2,7 @@ package m_account
 
 import (
 	"context"
+	mMemberDB "main.go/db/m-member"
 )
 
 type Service interface {
@@ -11,7 +12,15 @@ type Service interface {
 	Delete(ctx context.Context, req *DeleteRequest) DeleteResponse
 }
 
-type Handler struct{}
+type Handler struct {
+	mMemberRepo mMemberDB.Service
+}
+
+func New(mMemberRepo mMemberDB.Service) Handler {
+	return Handler{
+		mMemberRepo: mMemberRepo,
+	}
+}
 
 func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse {
 	return CreateResponse{}
