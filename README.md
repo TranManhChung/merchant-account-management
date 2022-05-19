@@ -239,3 +239,5 @@
 # Upcoming parts
 - Add logger
 - Add tracer
+- Build docker
+- Load config from config file
