@@ -1,28 +1,35 @@
-package model
+package m_member
 
-import "github.com/golang/protobuf/ptypes/timestamp"
+import (
+	"time"
+)
+
+const (
+	Email      = "member email"
+	Name       = "member name"
+	Address    = "member address"
+	Phone      = "member phone"
+	MerchantID = "merchant id"
+)
 
 type MerchantMember struct {
-	ID         int64  `bun:",pk,autoincrement"`
+	ID         string `bun:",pk,"`
 	Email      string `bun:",unique"`
-	MerchantID int64
+	MerchantID string
 	Name       string
 	Address    string
-	DoB        string
 	Phone      string
-	Gender     string
-	CreatedAt  timestamp.Timestamp
-	UpdatedAt  timestamp.Timestamp
+	IsActive   bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type MerchantMemberEntity struct {
-	MerchantID int64 `json:"merchant_id"`
+	MerchantID string `json:"merchant_id"`
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	Address    string `json:"address"`
-	DoB        string `json:"do_b"`
 	Phone      string `json:"phone"`
-	Gender     string `json:"gender"`
 }
 
 func (m MerchantMember) toEntity() MerchantMemberEntity {
@@ -31,8 +38,6 @@ func (m MerchantMember) toEntity() MerchantMemberEntity {
 		Email:      m.Email,
 		Name:       m.Name,
 		Address:    m.Address,
-		DoB:        m.DoB,
 		Phone:      m.Phone,
-		Gender:     m.Gender,
 	}
 }

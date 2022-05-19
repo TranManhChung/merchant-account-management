@@ -2,17 +2,15 @@ package m_account
 
 import (
 	"main.go/common/err"
-	"main.go/model"
+	"main.go/db/m-member"
 )
 
 type CreateRequest struct {
 	Email      string `json:"email"`
-	MerchantID int64  `json:"merchant_id"`
+	MerchantID string `json:"merchant_id"`
 	Name       string `json:"name"`
 	Address    string `json:"address"`
-	DoB        string `json:"do_b"`
 	Phone      string `json:"phone"`
-	Gender     string `json:"gender"`
 }
 
 type CreateResponse struct {
@@ -24,9 +22,7 @@ type UpdateRequest struct {
 	Email   string `json:"email"`
 	Name    string `json:"name"`
 	Address string `json:"address"`
-	DoB     string `json:"do_b"`
 	Phone   string `json:"phone"`
-	Gender  string `json:"gender"`
 }
 
 type UpdateResponse struct {
@@ -35,13 +31,15 @@ type UpdateResponse struct {
 }
 
 type ReadResponse struct {
-	Status string                      `json:"status"`
-	Error  *err.Error                  `json:"error,omitempty"`
-	Data   *model.MerchantMemberEntity `json:"data"`
+	Status string                         `json:"status"`
+	Error  *err.Error                     `json:"error,omitempty"`
+	Data   *m_member.MerchantMemberEntity `json:"data"`
 }
 
-type DeleteRequest struct {
-	Email string `json:"email"`
+type ReadsResponse struct {
+	Status string                           `json:"status"`
+	Error  *err.Error                       `json:"error,omitempty"`
+	Data   *[]m_member.MerchantMemberEntity `json:"data"`
 }
 
 type DeleteResponse struct {

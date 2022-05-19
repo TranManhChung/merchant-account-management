@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	mAccount "main.go/handler/m-account"
 	mMember "main.go/handler/m-member"
@@ -13,104 +14,88 @@ import (
 
 func Register(mAccountHandler mAccount.Service, mMemberHandler mMember.Service) *mux.Router {
 	router := mux.NewRouter()
-
-	router.HandleFunc("/v1/merchant/account/create", CreateMAccount(mAccountHandler)).Methods(http.MethodPost)
-	router.HandleFunc("/v1/merchant/account/read", ReadMAccount(mAccountHandler)).Methods(http.MethodGet)
-	router.HandleFunc("/v1/merchant/account/update", UpdateMAccount(mAccountHandler)).Methods(http.MethodPost)
-	router.HandleFunc("/v1/merchant/account/delete", DeleteMAccount(mAccountHandler)).Methods(http.MethodPost)
-
-	router.HandleFunc("/v1/merchant/member/create", CreateMMember(mMemberHandler)).Methods(http.MethodPost)
-	router.HandleFunc("/v1/merchant/member/read", ReadMMember(mMemberHandler)).Methods(http.MethodGet)
-	router.HandleFunc("/v1/merchant/member/update", UpdateMMember(mMemberHandler)).Methods(http.MethodPost)
-	router.HandleFunc("/v1/merchant/member/delete", DeleteMMember(mMemberHandler)).Methods(http.MethodPost)
-
+	router.HandleFunc("/v1/merchant/account", Handle(mMemberHandler, mAccountHandler)).Methods(http.MethodPost)
 	return router
 }
 
-func CreateMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
+func Handle(mMemberHandler mMember.Service, mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mAccount.CreateRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
+
+		source := r.URL.Query().Get("source")
+		action := r.URL.Query().Get("action")
+
+		if source == "member" {
+			switch action {
+			case "new":
+				request := &mMember.CreateRequest{}
+				if e := json.NewDecoder(r.Body).Decode(request); e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				} else {
+					resp := mMemberHandler.Create(context.Background(), request)
+					json.NewEncoder(w).Encode(resp)
+				}
+			case "get":
+				gmail := r.URL.Query().Get("email")
+				resp := mMemberHandler.Read(context.Background(), gmail)
+				json.NewEncoder(w).Encode(resp)
+			case "gets":
+				merchantID := r.URL.Query().Get("merchant_id")
+				offsetStr := r.URL.Query().Get("offset")
+				offset, e := strconv.Atoi(offsetStr)
+				if e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				}
+				limitStr := r.URL.Query().Get("limit")
+				limit, e := strconv.Atoi(limitStr)
+				if e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				}
+				resp := mMemberHandler.Reads(context.Background(), merchantID, offset, limit)
+				json.NewEncoder(w).Encode(resp)
+			case "update":
+				request := &mMember.UpdateRequest{}
+				if e := json.NewDecoder(r.Body).Decode(request); e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				} else {
+					resp := mMemberHandler.Update(context.Background(), request)
+					json.NewEncoder(w).Encode(resp)
+				}
+			case "delete":
+				email := r.URL.Query().Get("email")
+				resp := mMemberHandler.Delete(context.Background(), email)
+				json.NewEncoder(w).Encode(resp)
+			default:
+				http.Error(w, "action not found", http.StatusBadRequest)
+			}
 		} else {
-			resp := mAccountHandler.Create(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
-		}
-	}
-}
-
-func ReadMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		resp := mAccountHandler.Read(context.Background(), code)
-		json.NewEncoder(w).Encode(resp)
-	}
-}
-
-func UpdateMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mAccount.UpdateRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
-		} else {
-			resp := mAccountHandler.Update(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
-		}
-	}
-}
-
-func DeleteMAccount(mAccountHandler mAccount.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mAccount.DeleteRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
-		} else {
-			resp := mAccountHandler.Delete(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
-		}
-	}
-}
-
-func CreateMMember(mMemberHandler mMember.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mMember.CreateRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
-		} else {
-			resp := mMemberHandler.Create(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
-		}
-	}
-}
-
-func ReadMMember(mMemberHandler mMember.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		gmail := r.URL.Query().Get("gmail")
-		resp := mMemberHandler.Read(context.Background(), gmail)
-		json.NewEncoder(w).Encode(resp)
-	}
-}
-
-func UpdateMMember(mMemberHandler mMember.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mMember.UpdateRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
-		} else {
-			resp := mMemberHandler.Update(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
-		}
-	}
-}
-
-func DeleteMMember(mMemberHandler mMember.Service) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var request *mMember.DeleteRequest
-		if e := json.NewDecoder(r.Body).Decode(request); e != nil {
-			http.Error(w, e.Error(), http.StatusBadRequest)
-		} else {
-			resp := mMemberHandler.Delete(context.Background(), request)
-			json.NewEncoder(w).Encode(resp)
+			switch action {
+			case "new":
+				request := &mAccount.CreateRequest{}
+				if e := json.NewDecoder(r.Body).Decode(request); e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				} else {
+					resp := mAccountHandler.Create(context.Background(), request)
+					json.NewEncoder(w).Encode(resp)
+				}
+			case "get":
+				id := r.URL.Query().Get("id")
+				resp := mAccountHandler.Read(context.Background(), id)
+				json.NewEncoder(w).Encode(resp)
+			case "update":
+				request := &mAccount.UpdateRequest{}
+				if e := json.NewDecoder(r.Body).Decode(request); e != nil {
+					http.Error(w, e.Error(), http.StatusBadRequest)
+				} else {
+					resp := mAccountHandler.Update(context.Background(), request)
+					json.NewEncoder(w).Encode(resp)
+				}
+			case "delete":
+				merchantID := r.URL.Query().Get("id")
+				resp := mAccountHandler.Delete(context.Background(), merchantID)
+				json.NewEncoder(w).Encode(resp)
+			default:
+				http.Error(w, "action not found", http.StatusBadRequest)
+			}
 		}
 	}
 }

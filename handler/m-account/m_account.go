@@ -6,23 +6,25 @@ import (
 	"main.go/common/err"
 	"main.go/common/status"
 	mAccountDB "main.go/db/m-account"
-	"main.go/model"
+	mMemberDB "main.go/db/m-member"
 )
 
 type Service interface {
 	Create(ctx context.Context, req *CreateRequest) CreateResponse
-	Read(ctx context.Context, code string) ReadResponse
+	Read(ctx context.Context, id string) ReadResponse
 	Update(ctx context.Context, req *UpdateRequest) UpdateResponse
-	Delete(ctx context.Context, req *DeleteRequest) DeleteResponse
+	Delete(ctx context.Context, id string) DeleteResponse
 }
 
 type Handler struct {
 	mAccountRepo mAccountDB.Service
+	mMemberRepo  mMemberDB.Service
 }
 
-func New(mAccountRepo mAccountDB.Service) Handler {
+func New(mAccountRepo mAccountDB.Service, mMemberRepo mMemberDB.Service) Handler {
 	return Handler{
 		mAccountRepo: mAccountRepo,
+		mMemberRepo:  mMemberRepo,
 	}
 }
 
@@ -30,58 +32,26 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 	if req == nil {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
+			Error:  err.NilRequest.ToExternalError(nil),
 		}
 	}
-	if isExisted, er := h.mAccountRepo.IsExisted(ctx, req.Code); er != nil {
-		customErr := er.(err.InternalError)
-		return CreateResponse{
-			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    customErr.Code(),
-				Message: customErr.Error(),
-			},
-		}
-	} else if isExisted {
-		return CreateResponse{
-			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.MerchantCodeExisted.Code(),
-				Message: err.MerchantCodeExisted.Error(),
-			},
-		}
-	}
+
 	pwd, er := HashPassword(req.Password)
 	if er != nil {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.HashPasswordFailed.Code(),
-				Message: err.HashPasswordFailed.Error(),
-			},
+			Error:  err.HashPasswordFailed.ToExternalError(nil),
 		}
 	}
-	if er = h.mAccountRepo.Add(ctx, model.MerchantAccount{
+	if er = h.mAccountRepo.Add(ctx, mAccountDB.MerchantAccount{
 		Code:     req.Code,
 		Name:     req.Name,
 		UserName: req.UserName,
 		Password: pwd,
 	}); er != nil {
-		customErr := er.(err.InternalError)
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    customErr.Code(),
-				Message: customErr.Error(),
-			},
+			Error:  err.AddMAccountFailed.ToExternalError(er),
 		}
 	}
 	return CreateResponse{
@@ -89,27 +59,18 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 	}
 }
 
-func (h Handler) Read(ctx context.Context, code string) ReadResponse {
-	if code == "" {
+func (h Handler) Read(ctx context.Context, id string) ReadResponse {
+	if id == "" {
 		return ReadResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.EmptyMerchantCode.Code(),
-				Message: err.EmptyMerchantCode.Error(),
-			},
+			Error:  err.EmptyMerchantCode.ToExternalError(nil),
 		}
 	}
-	entity, er := h.mAccountRepo.Get(ctx, code)
+	entity, er := h.mAccountRepo.Get(ctx, id)
 	if er != nil {
-		customErr := er.(err.InternalError)
 		return ReadResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    customErr.Code(),
-				Message: customErr.Error(),
-			},
+			Error:  err.GetMAccountFailed.ToExternalError(er),
 		}
 	}
 	return ReadResponse{
@@ -122,11 +83,7 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	if req == nil {
 		return UpdateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
+			Error:  err.NilRequest.ToExternalError(nil),
 		}
 	}
 	var pwd string
@@ -135,27 +92,18 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	if er != nil && er.Error() != err.EmptyPassword.Error() {
 		return UpdateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.HashPasswordFailed.Code(),
-				Message: err.HashPasswordFailed.Error(),
-			},
+			Error:  err.HashPasswordFailed.ToExternalError(nil),
 		}
 	}
 
-	if er = h.mAccountRepo.Update(ctx, model.MerchantAccount{
-		Code:     req.Code,
+	if er = h.mAccountRepo.Update(ctx, mAccountDB.MerchantAccount{
+		ID: req.MerchantID,
 		Name:     req.Name,
 		Password: pwd,
 	}); er != nil {
-		customErr := er.(err.InternalError)
 		return UpdateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    customErr.Code(),
-				Message: customErr.Error(),
-			},
+			Error:  err.UpdateMAccountFailed.ToExternalError(er),
 		}
 	}
 	return UpdateResponse{
@@ -163,29 +111,22 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	}
 }
 
-func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse {
-	if req == nil {
+func (h Handler) Delete(ctx context.Context, id string) DeleteResponse{
+
+	if er := h.mAccountRepo.Delete(ctx, id); er != nil {
 		return DeleteResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
+			Error:  err.DeleteMAccountFailed.ToExternalError(er),
 		}
 	}
 
-	if er := h.mAccountRepo.Delete(ctx, req.Code); er != nil {
-		customErr := er.(err.InternalError)
+	if er := h.mMemberRepo.DeleteByMerchantID(ctx, id); er != nil && err.DeleteMAccountFailed.ToExternalError(er).Code != err.NotFound.Code{
 		return DeleteResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    customErr.Code(),
-				Message: customErr.Error(),
-			},
+			Error:  err.DeleteMAccountFailed.ToExternalError(er),
 		}
 	}
+
 	return DeleteResponse{
 		Status: status.Success,
 	}

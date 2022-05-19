@@ -9,7 +9,8 @@ import (
 	"main.go/common/status"
 	mAccountDB "main.go/db/m-account"
 	"main.go/db/m-account/mocks"
-	"main.go/model"
+	mMemberDB "main.go/db/m-member"
+	mockMember "main.go/db/m-member/mocks"
 	"testing"
 )
 
@@ -18,21 +19,25 @@ func TestCreate(t *testing.T) {
 	mockMAccountDB := &mocks.Service{}
 	mockMAccountDB.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
 
-	reqErr := CreateRequest{
+	reqLibErr := CreateRequest{
 		Code: "nike",
 	}
-	mockMAccountDBIsExistedErr := &mocks.Service{}
-	mockMAccountDBIsExistedErr.On("IsExisted", context.Background(), reqErr.Code).Return(false, errors.New(""))
+	mockMAccountDBIsExistedLibErr := &mocks.Service{}
+	mockMAccountDBIsExistedLibErr.On("IsExisted", context.Background(), reqLibErr.Code).Return(false, errors.New(""))
 
-	reqErr = CreateRequest{
+	reqCustomErr := CreateRequest{
 		Code: "nike",
 	}
-	mockMAccountDBAccountExisted := &mocks.Service{}
-	mockMAccountDBAccountExisted.On("IsExisted", context.Background(), reqErr.Code).Return(true, nil)
+	mockMAccountDBIsExistedCustomErr := &mocks.Service{}
+	mockMAccountDBIsExistedCustomErr.On("IsExisted", context.Background(), reqCustomErr.Code).Return(false, err.InvalidParameter)
 
 	mockMAccountDBAddErr := &mocks.Service{}
 	mockMAccountDBAddErr.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
 	mockMAccountDBAddErr.On("Add", context.Background(), mock.Anything).Return(errors.New(""))
+
+	mockMAccountDBAddCustomErr := &mocks.Service{}
+	mockMAccountDBAddCustomErr.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
+	mockMAccountDBAddCustomErr.On("Add", context.Background(), mock.Anything).Return(err.InvalidParameter)
 
 	mockMAccountDBAddSuccess := &mocks.Service{}
 	mockMAccountDBAddSuccess.On("IsExisted", context.Background(), mock.Anything).Return(false, nil)
@@ -40,6 +45,7 @@ func TestCreate(t *testing.T) {
 
 	type fields struct {
 		mAccountRepo mAccountDB.Service
+		mMemberRepo  mMemberDB.Service
 	}
 	type params struct {
 		ctx context.Context
@@ -64,44 +70,8 @@ func TestCreate(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.NilRequest.Code(),
+					Code:    err.NilRequest.Code,
 					Message: err.NilRequest.Error(),
-				},
-			},
-		},
-		{
-			name: "test check existence fail",
-			fields: fields{
-				mAccountRepo: mockMAccountDBIsExistedErr,
-			},
-			params: params{
-				ctx: context.Background(),
-				req: &reqErr,
-			},
-			want: CreateResponse{
-				Status: status.Failed,
-				Error: &err.Error{
-					Domain:  status.Domain,
-					Code:    err.CheckExistenceFailed.Code(),
-					Message: err.CheckExistenceFailed.Error(),
-				},
-			},
-		},
-		{
-			name: "test account existed",
-			fields: fields{
-				mAccountRepo: mockMAccountDBAccountExisted,
-			},
-			params: params{
-				ctx: context.Background(),
-				req: &reqErr,
-			},
-			want: CreateResponse{
-				Status: status.Failed,
-				Error: &err.Error{
-					Domain:  status.Domain,
-					Code:    err.MerchantCodeExisted.Code(),
-					Message: err.MerchantCodeExisted.Error(),
 				},
 			},
 		},
@@ -121,13 +91,13 @@ func TestCreate(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.HashPasswordFailed.Code(),
+					Code:    err.HashPasswordFailed.Code,
 					Message: err.HashPasswordFailed.Error(),
 				},
 			},
 		},
 		{
-			name: "test add merchant account db fail",
+			name: "test add merchant account db fail because lib",
 			fields: fields{
 				mAccountRepo: mockMAccountDBAddErr,
 			},
@@ -144,8 +114,31 @@ func TestCreate(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.AddMAccountFailed.Code(),
+					Code:    err.AddMAccountFailed.Code,
 					Message: err.AddMAccountFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test add merchant account db fail because system",
+			fields: fields{
+				mAccountRepo: mockMAccountDBAddCustomErr,
+			},
+			params: params{
+				ctx: context.Background(),
+				req: &CreateRequest{
+					Code:     "code",
+					Name:     "name",
+					UserName: "username",
+					Password: "chungtm",
+				},
+			},
+			want: CreateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.InvalidParameter.Code,
+					Message: err.InvalidParameter.Error(),
 				},
 			},
 		},
@@ -170,7 +163,7 @@ func TestCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.mAccountRepo)
+			h := New(tt.fields.mAccountRepo, tt.fields.mMemberRepo)
 			got := h.Create(tt.params.ctx, tt.params.req)
 			assert.Equal(t, got, tt.want)
 		})
@@ -179,19 +172,24 @@ func TestCreate(t *testing.T) {
 
 func TestRead(t *testing.T) {
 
-	mockMAccountDBGetErr := &mocks.Service{}
+	mockMAccountDBGetLibErr := &mocks.Service{}
 	code := "nike"
-	mockMAccountDBGetErr.On("Get", context.Background(), code).Return(nil, errors.New(""))
+	mockMAccountDBGetLibErr.On("Get", context.Background(), code).Return(nil, errors.New(""))
+
+	mockMAccountDBGetSysErr := &mocks.Service{}
+	code = "nike"
+	mockMAccountDBGetSysErr.On("Get", context.Background(), code).Return(nil, err.InvalidParameter)
 
 	mockMAccountDBGetSuccess := &mocks.Service{}
 	code = "nike"
-	entity := &model.MerchantAccountEntity{
+	entity := &mAccountDB.MerchantAccountEntity{
 		Code: code,
 	}
 	mockMAccountDBGetSuccess.On("Get", context.Background(), code).Return(entity, nil)
 
 	type fields struct {
 		mAccountRepo mAccountDB.Service
+		mMemberRepo  mMemberDB.Service
 	}
 	type params struct {
 		ctx  context.Context
@@ -212,26 +210,44 @@ func TestRead(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.NilMerchantCode.Code(),
-					Message: err.NilMerchantCode.Error(),
+					Code:    err.EmptyMerchantCode.Code,
+					Message: err.EmptyMerchantCode.Error(),
 				},
 			},
 		},
 		{
-			name: "test get merchant account db fail",
+			name: "test get merchant account db fail because lib",
 			params: params{
 				ctx:  context.Background(),
 				code: code,
 			},
 			fields: fields{
-				mAccountRepo: mockMAccountDBGetErr,
+				mAccountRepo: mockMAccountDBGetLibErr,
 			},
 			want: ReadResponse{
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.GetMAccountFailed.Code(),
+					Code:    err.GetMAccountFailed.Code,
 					Message: err.GetMAccountFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test get merchant account db fail because system",
+			params: params{
+				ctx:  context.Background(),
+				code: code,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBGetSysErr,
+			},
+			want: ReadResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.InvalidParameter.Code,
+					Message: err.InvalidParameter.Error(),
 				},
 			},
 		},
@@ -252,7 +268,7 @@ func TestRead(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.mAccountRepo)
+			h := New(tt.fields.mAccountRepo, tt.fields.mMemberRepo)
 			got := h.Read(tt.params.ctx, tt.params.code)
 			assert.Equal(t, got, tt.want)
 		})
@@ -261,30 +277,42 @@ func TestRead(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 
-	mockMAccountDBUpdateErr := &mocks.Service{}
-	reqErr := &UpdateRequest{
-		Code: "nike",
-		Name: "nike",
+	mockMAccountDBUpdateLibErr := &mocks.Service{}
+	reqLibErr := &UpdateRequest{
+		MerchantID: "nike",
+		Name:       "nike",
 	}
-	mAccountErr := model.MerchantAccount{
-		Code: reqErr.Code,
-		Name: reqErr.Name,
+	mAccountErr := mAccountDB.MerchantAccount{
+		ID:   reqLibErr.MerchantID,
+		Name: reqLibErr.Name,
 	}
-	mockMAccountDBUpdateErr.On("Update", context.Background(), mAccountErr).Return(errors.New(""))
+	mockMAccountDBUpdateLibErr.On("Update", context.Background(), mAccountErr).Return(errors.New(""))
+
+	mockMAccountDBUpdateSysErr := &mocks.Service{}
+	reqSysErr := &UpdateRequest{
+		MerchantID: "nike",
+		Name:       "nike",
+	}
+	mAccountSysErr := mAccountDB.MerchantAccount{
+		ID:   reqSysErr.MerchantID,
+		Name: reqSysErr.Name,
+	}
+	mockMAccountDBUpdateSysErr.On("Update", context.Background(), mAccountSysErr).Return(err.InvalidParameter)
 
 	mockMAccountDBUpdateSuccess := &mocks.Service{}
 	reqOk := &UpdateRequest{
-		Code: "adidas",
-		Name: "adidas",
+		MerchantID: "adidas",
+		Name:       "adidas",
 	}
-	mAccountOk := model.MerchantAccount{
-		Code: reqOk.Code,
+	mAccountOk := mAccountDB.MerchantAccount{
+		ID:   reqOk.MerchantID,
 		Name: reqOk.Name,
 	}
 	mockMAccountDBUpdateSuccess.On("Update", context.Background(), mAccountOk).Return(nil)
 
 	type fields struct {
 		mAccountRepo mAccountDB.Service
+		mMemberRepo  mMemberDB.Service
 	}
 	type params struct {
 		ctx context.Context
@@ -306,26 +334,44 @@ func TestUpdate(t *testing.T) {
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.NilRequest.Code(),
+					Code:    err.NilRequest.Code,
 					Message: err.NilRequest.Error(),
 				},
 			},
 		},
 		{
-			name: "test update merchant account fail in case password is nil",
+			name: "test update merchant account fail because lib",
 			params: params{
 				ctx: context.Background(),
-				req: reqErr,
+				req: reqLibErr,
 			},
 			fields: fields{
-				mAccountRepo: mockMAccountDBUpdateErr,
+				mAccountRepo: mockMAccountDBUpdateLibErr,
 			},
 			want: UpdateResponse{
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.UpdateMAccountFailed.Code(),
+					Code:    err.UpdateMAccountFailed.Code,
 					Message: err.UpdateMAccountFailed.Error(),
+				},
+			},
+		},
+		{
+			name: "test update merchant account fail because sys",
+			params: params{
+				ctx: context.Background(),
+				req: reqSysErr,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBUpdateSysErr,
+			},
+			want: UpdateResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.InvalidParameter.Code,
+					Message: err.InvalidParameter.Error(),
 				},
 			},
 		},
@@ -345,7 +391,7 @@ func TestUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.mAccountRepo)
+			h := New(tt.fields.mAccountRepo, tt.fields.mMemberRepo)
 			got := h.Update(tt.params.ctx, tt.params.req)
 			assert.Equal(t, got, tt.want)
 		})
@@ -354,24 +400,28 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 
-	mockMAccountDBDeleteErr := &mocks.Service{}
-	reqErr := &DeleteRequest{
-		Code: "nike",
-	}
-	mockMAccountDBDeleteErr.On("Delete", context.Background(), reqErr.Code).Return(errors.New(""))
+	mockMAccountDBDeleteLibErr := &mocks.Service{}
+	MerchantID := "id"
+	mockMAccountDBDeleteLibErr.On("Delete", context.Background(), MerchantID).Return(errors.New(""))
+
+	mockMAccountDBDeleteSysErr := &mocks.Service{}
+	mockMAccountDBDeleteSysErr.On("Delete", context.Background(), MerchantID).Return(err.InvalidParameter)
 
 	mockMAccountDBDeleteSuccess := &mocks.Service{}
-	reqOk := &DeleteRequest{
-		Code: "adidas",
-	}
-	mockMAccountDBDeleteSuccess.On("Delete", context.Background(), reqOk.Code).Return(nil)
+	mockMAccountDBDeleteSuccess.On("Delete", context.Background(), MerchantID).Return(nil)
+	mockMMemberDBDeleteSuccess := &mockMember.Service{}
+	mockMMemberDBDeleteSuccess.On("DeleteByMerchantID", context.Background(), MerchantID).Return(nil)
+
+	mockMMemberDBDeleteErr := &mockMember.Service{}
+	mockMMemberDBDeleteErr.On("DeleteByMerchantID", context.Background(), MerchantID).Return(errors.New(""))
 
 	type fields struct {
 		mAccountRepo mAccountDB.Service
+		mMemberRepo  mMemberDB.Service
 	}
 	type params struct {
 		ctx context.Context
-		req *DeleteRequest
+		mID string
 	}
 	tests := []struct {
 		name   string
@@ -380,35 +430,38 @@ func TestDelete(t *testing.T) {
 		want   DeleteResponse
 	}{
 		{
-			name: "test req is nil",
+			name: "test delete merchant account fail because lib",
 			params: params{
 				ctx: context.Background(),
-				req: nil,
+				mID: MerchantID,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBDeleteLibErr,
 			},
 			want: DeleteResponse{
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.NilRequest.Code(),
-					Message: err.NilRequest.Error(),
+					Code:    err.DeleteMAccountFailed.Code,
+					Message: err.DeleteMAccountFailed.Error(),
 				},
 			},
 		},
 		{
-			name: "test delete merchant account fail",
+			name: "test delete merchant account fail because system",
 			params: params{
 				ctx: context.Background(),
-				req: reqErr,
+				mID: MerchantID,
 			},
 			fields: fields{
-				mAccountRepo: mockMAccountDBDeleteErr,
+				mAccountRepo: mockMAccountDBDeleteSysErr,
 			},
 			want: DeleteResponse{
 				Status: status.Failed,
 				Error: &err.Error{
 					Domain:  status.Domain,
-					Code:    err.DeleteMAccountFailed.Code(),
-					Message: err.DeleteMAccountFailed.Error(),
+					Code:    err.InvalidParameter.Code,
+					Message: err.InvalidParameter.Error(),
 				},
 			},
 		},
@@ -416,20 +469,40 @@ func TestDelete(t *testing.T) {
 			name: "test delete merchant account success",
 			params: params{
 				ctx: context.Background(),
-				req: reqOk,
+				mID: MerchantID,
 			},
 			fields: fields{
 				mAccountRepo: mockMAccountDBDeleteSuccess,
+				mMemberRepo:  mockMMemberDBDeleteSuccess,
 			},
 			want: DeleteResponse{
 				Status: status.Success,
 			},
 		},
+		{
+			name: "test delete merchant account success but delete member of merchant fail",
+			params: params{
+				ctx: context.Background(),
+				mID: MerchantID,
+			},
+			fields: fields{
+				mAccountRepo: mockMAccountDBDeleteSuccess,
+				mMemberRepo:  mockMMemberDBDeleteErr,
+			},
+			want: DeleteResponse{
+				Status: status.Failed,
+				Error: &err.Error{
+					Domain:  status.Domain,
+					Code:    err.DeleteMAccountFailed.Code,
+					Message: err.DeleteMAccountFailed.Error(),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(tt.fields.mAccountRepo)
-			got := h.Delete(tt.params.ctx, tt.params.req)
+			h := New(tt.fields.mAccountRepo, tt.fields.mMemberRepo)
+			got := h.Delete(tt.params.ctx, tt.params.mID)
 			assert.Equal(t, got, tt.want)
 		})
 	}

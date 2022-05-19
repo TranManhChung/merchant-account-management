@@ -4,24 +4,27 @@ import (
 	"context"
 	"main.go/common/err"
 	"main.go/common/status"
+	mAccountDB "main.go/db/m-account"
 	mMemberDB "main.go/db/m-member"
-	"main.go/model"
 )
 
 type Service interface {
 	Create(ctx context.Context, req *CreateRequest) CreateResponse
 	Read(ctx context.Context, email string) ReadResponse
 	Update(ctx context.Context, req *UpdateRequest) UpdateResponse
-	Delete(ctx context.Context, req *DeleteRequest) DeleteResponse
+	Delete(ctx context.Context, email string) DeleteResponse
+	Reads(ctx context.Context, merchantID string, offset, limit int) ReadsResponse
 }
 
 type Handler struct {
-	mMemberRepo mMemberDB.Service
+	mMemberRepo  mMemberDB.Service
+	mAccountRepo mAccountDB.Service
 }
 
-func New(mMemberRepo mMemberDB.Service) Handler {
+func New(mMemberRepo mMemberDB.Service, mAccountRepo mAccountDB.Service) Handler {
 	return Handler{
-		mMemberRepo: mMemberRepo,
+		mMemberRepo:  mMemberRepo,
+		mAccountRepo: mAccountRepo,
 	}
 }
 
@@ -29,48 +32,38 @@ func (h Handler) Create(ctx context.Context, req *CreateRequest) CreateResponse 
 	if req == nil {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
+			Error:  err.NilRequest.ToExternalError(nil),
 		}
 	}
+
+	if isExisted, er := h.mAccountRepo.IsExisted(ctx, req.MerchantID); er != nil || !isExisted {
+		return CreateResponse{
+			Status: status.Failed,
+			Error:  err.CheckExistenceFailed.ToExternalError(er),
+		}
+	}
+
 	if isExisted, er := h.mMemberRepo.IsExisted(ctx, req.Email); er != nil {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.CheckExistenceFailed.Code(),
-				Message: er.Error(),
-			},
+			Error:  err.CheckExistenceFailed.ToExternalError(er),
 		}
 	} else if isExisted {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.EmailExisted.Code(),
-				Message: err.EmailExisted.Error(),
-			},
+			Error:  err.EmailExisted.ToExternalError(nil),
 		}
 	}
-	if er := h.mMemberRepo.Add(ctx, model.MerchantMember{
+	if er := h.mMemberRepo.Add(ctx, mMemberDB.MerchantMember{
 		Email:      req.Email,
 		MerchantID: req.MerchantID,
 		Name:       req.Name,
 		Address:    req.Address,
-		DoB:        req.DoB,
 		Phone:      req.Phone,
-		Gender:     req.Gender,
 	}); er != nil {
 		return CreateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.AddMMemberFailed.Code(),
-				Message: er.Error(),
-			},
+			Error:  err.AddMMemberFailed.ToExternalError(er),
 		}
 	}
 	return CreateResponse{
@@ -82,22 +75,14 @@ func (h Handler) Read(ctx context.Context, email string) ReadResponse {
 	if email == "" {
 		return ReadResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.EmptyEmail.Code(),
-				Message: err.EmptyEmail.Error(),
-			},
+			Error:  err.EmptyEmail.ToExternalError(nil),
 		}
 	}
 	entity, er := h.mMemberRepo.Get(ctx, email)
 	if er != nil {
 		return ReadResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.GetMMemberFailed.Code(),
-				Message: er.Error(),
-			},
+			Error:  err.GetMMemberFailed.ToExternalError(er),
 		}
 	}
 	return ReadResponse{
@@ -110,29 +95,19 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	if req == nil {
 		return UpdateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
+			Error:  err.NilRequest.ToExternalError(nil),
 		}
 	}
 
-	if er := h.mMemberRepo.Update(ctx, model.MerchantMember{
+	if er := h.mMemberRepo.Update(ctx, mMemberDB.MerchantMember{
 		Email:   req.Email,
 		Name:    req.Name,
 		Address: req.Address,
-		DoB:     req.DoB,
 		Phone:   req.Phone,
-		Gender:  req.Gender,
 	}); er != nil {
 		return UpdateResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.UpdateMMemberFailed.Code(),
-				Message: er.Error(),
-			},
+			Error:  err.UpdateMMemberFailed.ToExternalError(er),
 		}
 	}
 	return UpdateResponse{
@@ -140,29 +115,28 @@ func (h Handler) Update(ctx context.Context, req *UpdateRequest) UpdateResponse 
 	}
 }
 
-func (h Handler) Delete(ctx context.Context, req *DeleteRequest) DeleteResponse {
-	if req == nil {
+func (h Handler) Delete(ctx context.Context, email string) DeleteResponse{
+	if er := h.mMemberRepo.Delete(ctx, email); er != nil {
 		return DeleteResponse{
 			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.NilRequest.Code(),
-				Message: err.NilRequest.Error(),
-			},
-		}
-	}
-
-	if er := h.mMemberRepo.Delete(ctx, req.Email); er != nil {
-		return DeleteResponse{
-			Status: status.Failed,
-			Error: &err.Error{
-				Domain:  status.Domain,
-				Code:    err.DeleteMMemberFailed.Code(),
-				Message: err.DeleteMMemberFailed.Error(),
-			},
+			Error:  err.DeleteMMemberFailed.ToExternalError(er),
 		}
 	}
 	return DeleteResponse{
 		Status: status.Success,
+	}
+}
+
+func (h Handler) Reads(ctx context.Context, merchantID string, offset, limit int) ReadsResponse {
+	entities, er := h.mMemberRepo.GetByMerchantID(ctx, merchantID, offset, limit)
+	if er != nil {
+		return ReadsResponse{
+			Status: status.Failed,
+			Error:  err.GetMMemberFailed.ToExternalError(er),
+		}
+	}
+	return ReadsResponse{
+		Status: status.Success,
+		Data:   &entities,
 	}
 }
